@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../constants/theme';
 
 import HomeScreen from '../screens/HomeScreen';
 import FavoritesScreen from '../screens/FavoritesScreen';
@@ -10,7 +11,7 @@ import AboutScreen from '../screens/AboutScreen';
 const Tab = createBottomTabNavigator();
 
 function getTabBarIcon(routeName, focused) {
-  const baseColor = focused ? '#00D564' : '#6b7280';
+  const baseColor = focused ? theme.colors.accent : theme.colors.textSecondary;
 
   switch (routeName) {
     case 'Home':
@@ -37,8 +38,12 @@ export default function TabNavigator() {
         headerShown: true,
         headerTitle: 'BookShelf',
         tabBarShowLabel: true,
-        tabBarActiveTintColor: '#00D564',
-        tabBarInactiveTintColor: '#6b7280',
+        headerStyle: { backgroundColor: theme.colors.surface },
+        headerTintColor: theme.colors.textPrimary,
+        headerTitleStyle: { ...theme.typography.strong },
+        tabBarStyle: { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border },
+        tabBarActiveTintColor: theme.colors.accent,
+        tabBarInactiveTintColor: theme.colors.textSecondary,
         tabBarIcon: ({ focused, size }) => {
           const { name, color } = getTabBarIcon(route.name, focused);
           return <Ionicons name={name} size={size ?? 22} color={color} />;

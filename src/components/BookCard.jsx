@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { theme } from '../constants/theme';
 
 function coverUrl(coverId) {
   if (!coverId) return null;
@@ -10,7 +11,7 @@ function BookCard({ title, author, coverId, onPress }) {
   const uri = coverUrl(coverId);
 
   return (
-    <Pressable onPress={onPress} style={styles.card} android_ripple={{ color: '#e5e7eb' }}>
+    <Pressable onPress={onPress} style={styles.card} android_ripple={{ color: theme.colors.border }}>
       <View style={styles.coverFrame}>
         {uri ? (
           <Image source={{ uri }} style={styles.cover} resizeMode="cover" />
@@ -36,24 +37,24 @@ export default memo(BookCard);
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 14,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: theme.colors.border,
   },
   coverFrame: {
     width: '100%',
     aspectRatio: 3 / 4,
-    borderRadius: 12,
+    borderRadius: theme.radius.md,
     overflow: 'hidden',
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.colors.skeleton,
     marginBottom: 10,
   },
   cover: { width: '100%', height: '100%' },
   coverFallback: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  coverFallbackText: { color: '#6b7280', fontWeight: '700' },
-  title: { fontSize: 13, fontWeight: '800', color: '#111827' },
-  author: { marginTop: 4, fontSize: 12, color: '#6b7280' },
+  coverFallbackText: { color: theme.colors.textSecondary, fontWeight: '700' },
+  title: { ...theme.typography.cardTitle, color: theme.colors.textPrimary },
+  author: { marginTop: 4, ...theme.typography.caption, color: theme.colors.textSecondary },
 });
 

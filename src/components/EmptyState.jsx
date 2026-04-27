@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { theme } from '../constants/theme';
 
 export default function EmptyState({ title = 'Kosong', message }) {
   return (
@@ -14,19 +15,19 @@ export default function EmptyState({ title = 'Kosong', message }) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 10 },
+  wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: theme.spacing.xl, gap: 10 },
   badge: {
     width: 56,
     height: 56,
-    borderRadius: 999,
+    borderRadius: theme.radius.pill,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#f9fafb',
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.soft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeText: { fontSize: 22, fontWeight: '900', color: '#9ca3af' },
-  title: { fontSize: 16, fontWeight: '900', color: '#111827', textAlign: 'center' },
-  message: { color: '#6b7280', textAlign: 'center', lineHeight: 20 },
+  badgeText: { fontSize: 22, fontWeight: '900', color: theme.colors.textMuted },
+  title: { ...theme.typography.sectionTitle, color: theme.colors.textPrimary, textAlign: 'center' },
+  message: { color: theme.colors.textSecondary, textAlign: 'center', lineHeight: 20, ...theme.typography.body },
 });
 

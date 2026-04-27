@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenContainer from '../components/ScreenContainer';
+import { theme } from '../constants/theme';
 
 const PROFILE_IMAGE_URL = 'https://res.cloudinary.com/drrmbeiyk/image/upload/v1777217745/foto_geztgv.webp';
 
@@ -23,7 +24,7 @@ function InfoRow({ label, value }) {
 
 export default function AboutScreen() {
   return (
-    <SafeAreaView edges={['top']} style={styles.safe}>
+    <ScreenContainer>
       <View style={styles.container}>
         <Text style={styles.title}>About BookShelf</Text>
         <Text style={styles.subtitle}>Informasi Developer.</Text>
@@ -45,20 +46,19 @@ export default function AboutScreen() {
           <Text style={styles.footerSubtext}>BookShelf</Text>
         </View>
       </View>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#ffffff' },
-  container: { flex: 1, padding: 16, gap: 12 },
-  title: { fontSize: 22, fontWeight: '900', color: '#111827' },
-  subtitle: { color: '#6b7280', fontWeight: '600' },
+  container: { flex: 1, padding: theme.spacing.lg, gap: theme.spacing.md },
+  title: { ...theme.typography.title, color: theme.colors.textPrimary },
+  subtitle: { color: theme.colors.textSecondary, ...theme.typography.caption },
   card: {
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 16,
-    backgroundColor: '#ffffff',
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.xl,
+    backgroundColor: theme.colors.surface,
     padding: 14,
     gap: 14,
   },
@@ -68,29 +68,29 @@ const styles = StyleSheet.create({
     borderRadius: 48,
     alignSelf: 'center',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#f3f4f6',
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.skeleton,
   },
-  infoWrap: { gap: 8 },
+  infoWrap: { gap: theme.spacing.sm },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: theme.colors.skeleton,
     paddingBottom: 6,
   },
-  infoLabel: { color: '#6b7280', fontWeight: '700' },
-  infoValue: { color: '#111827', fontWeight: '800' },
+  infoLabel: { color: theme.colors.textSecondary, fontWeight: '700' },
+  infoValue: { color: theme.colors.textPrimary, ...theme.typography.strong },
   footer: {
     marginTop: 'auto',
     paddingTop: 12,
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: theme.colors.border,
     gap: 2,
   },
-  footerText: { color: '#111827', fontWeight: '800' },
-  footerSubtext: { color: '#6b7280', fontSize: 12, fontWeight: '600' },
+  footerText: { color: theme.colors.textPrimary, ...theme.typography.strong },
+  footerSubtext: { color: theme.colors.textSecondary, ...theme.typography.caption },
 });
 

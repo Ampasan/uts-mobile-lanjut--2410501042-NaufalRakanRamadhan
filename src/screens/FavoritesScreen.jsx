@@ -1,10 +1,11 @@
 import React, { useCallback, useMemo } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import EmptyState from '../components/EmptyState';
 import BookCard from '../components/BookCard';
 import useFavoriteStore from '../store/useFavoriteStore';
+import ScreenContainer from '../components/ScreenContainer';
+import { theme } from '../constants/theme';
 
 export default function FavoritesScreen({ navigation }) {
   const favorites = useFavoriteStore((s) => s.favorites);
@@ -46,7 +47,7 @@ export default function FavoritesScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safe}>
+    <ScreenContainer>
       <View style={styles.header}>
         <Text style={styles.title}>Favorites</Text>
         <Text style={styles.subtitle}>Buku yang Anda simpan untuk dibaca nanti.</Text>
@@ -64,31 +65,30 @@ export default function FavoritesScreen({ navigation }) {
         windowSize={7}
         ListEmptyComponent={<EmptyState title="Belum ada favorit" message="Tambahkan dari halaman detail buku." />}
       />
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#ffffff' },
-  header: { paddingHorizontal: 16 },
-  title: { fontSize: 22, fontWeight: '900', color: '#111827' },
-  subtitle: { marginTop: 4, color: '#6b7280' },
+  header: { paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm },
+  title: { ...theme.typography.title, color: theme.colors.textPrimary },
+  subtitle: { marginTop: theme.spacing.xs, color: theme.colors.textSecondary, ...theme.typography.body },
 
-  listContent: { paddingHorizontal: 16, paddingVertical: 12 },
+  listContent: { paddingHorizontal: theme.spacing.lg, paddingVertical: theme.spacing.md },
   emptyContent: { flexGrow: 1 },
-  row: { gap: 12, marginBottom: 12 },
+  row: { gap: theme.spacing.md, marginBottom: theme.spacing.md },
 
-  itemWrap: { flex: 1, gap: 8, marginBottom: 12 },
+  itemWrap: { flex: 1, gap: theme.spacing.sm, marginBottom: theme.spacing.md },
   spacer: { opacity: 0 },
   removeBtn: {
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#fff',
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
     paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: 12,
+    borderRadius: theme.radius.md,
     alignItems: 'center',
   },
-  removeBtnText: { fontWeight: '900', color: '#111827' },
+  removeBtnText: { ...theme.typography.strong, color: theme.colors.textPrimary },
 });
 

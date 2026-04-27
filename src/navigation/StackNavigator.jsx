@@ -1,5 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { theme } from '../constants/theme';
 
 import TabNavigator from './TabNavigator';
 import DetailScreen from '../screens/DetailScreen';
@@ -17,7 +18,13 @@ export default function StackNavigator() {
       <Stack.Screen
         name="Detail"
         component={DetailScreen}
-        options={{ title: 'Book Detail', headerTitleAlign: 'center' }}
+        options={{
+          title: 'Book Detail',
+          headerTitleAlign: 'center',
+          headerStyle: { backgroundColor: theme.colors.surface },
+          headerTintColor: theme.colors.textPrimary,
+          headerTitleStyle: { ...theme.typography.strong },
+        }}
       />
     </Stack.Navigator>
   );

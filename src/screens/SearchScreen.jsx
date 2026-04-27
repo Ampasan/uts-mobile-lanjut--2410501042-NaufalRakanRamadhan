@@ -1,42 +1,62 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 
-import SearchBar from '../components/SearchBar';
-import EmptyState from '../components/EmptyState';
-import LoadingIndicator from '../components/LoadingIndicator';
-import ErrorState from '../components/ErrorState';
-import BookCard from '../components/BookCard';
+import SearchBar from "../components/SearchBar";
+import EmptyState from "../components/EmptyState";
+import LoadingIndicator from "../components/LoadingIndicator";
+import ErrorState from "../components/ErrorState";
+import BookCard from "../components/BookCard";
+import ScreenContainer from "../components/ScreenContainer";
+import FilterCategory from "../components/FilterCategory";
+import useSmoothLoading from "../hooks/useSmoothLoading";
+import { theme } from "../constants/theme";
+
+const CATEGORY_OPTIONS = [
+  { key: "all", label: "All", subject: "" },
+  { key: "romance", label: "Romansa", subject: "romance" },
+  { key: "fantasy", label: "Fantasi", subject: "fantasy" },
+  { key: "science_fiction", label: "Sci-Fi", subject: "science_fiction" },
+  { key: "history", label: "Histori", subject: "history" },
+  { key: "mystery", label: "Misteri", subject: "mystery" },
+  { key: "horror", label: "Horor", subject: "horror" },
+];
 
 function tidyQuery(raw) {
-  const text = String(raw ?? '');
-  return text.replace(/\s+/g, ' ').trim();
+  const text = String(raw ?? "");
+  return text.replace(/\s+/g, " ").trim();
 }
 
 function validateQuery(query) {
   const text = tidyQuery(query);
-  if (!text) return 'Pencarian tidak boleh kosong.';
-  if (text.length < 3) return 'Minimal 3 karakter.';
-  return '';
+  if (!text) return "Pencarian tidak boleh kosong.";
+  if (text.length < 3) return "Minimal 3 karakter.";
+  return "";
 }
 
 function workIdFromKey(key) {
-  const raw = String(key ?? '').trim();
-  if (!raw) return '';
-  const parts = raw.split('/').filter(Boolean);
-  const idx = parts.indexOf('works');
-  if (idx === -1) return '';
-  return parts[idx + 1] ? String(parts[idx + 1]).trim() : '';
+  const raw = String(key ?? "").trim();
+  if (!raw) return "";
+  const parts = raw.split("/").filter(Boolean);
+  const idx = parts.indexOf("works");
+  if (idx === -1) return "";
+  return parts[idx + 1] ? String(parts[idx + 1]).trim() : "";
 }
 
 function mapDocToCard(doc) {
-  const d = doc && typeof doc === 'object' ? doc : {};
+  const d = doc && typeof doc === "object" ? doc : {};
 
-  const title = typeof d.title === 'string' && d.title.trim() ? d.title.trim() : 'Untitled';
+  const title =
+    typeof d.title === "string" && d.title.trim() ? d.title.trim() : "Untitled";
   const author =
     Array.isArray(d.author_name) && d.author_name.length
-      ? String(d.author_name[0] ?? '').trim() || 'Unknown'
-      : 'Unknown';
+      ? String(d.author_name[0] ?? "").trim() || "Unknown"
+      : "Unknown";
 
   const coverId = Number.isFinite(d.cover_i) ? d.cover_i : null;
   const workId = workIdFromKey(d.key);
@@ -48,12 +68,31 @@ async function searchBooks(query, signal) {
   const q = tidyQuery(query);
   const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}`;
 
-  const res = await fetch(url, { method: 'GET', signal });
+  const res = await fetch(url, { method: "GET", signal });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const json = await res.json();
 
   const docs = Array.isArray(json?.docs) ? json.docs : [];
-  return docs.map(mapDocToCard).filter((x) => x && typeof x === 'object' && x.id);
+  return docs
+    .map(mapDocToCard)
+    .filter((x) => x && typeof x === "object" && x.id);
+}
+
+async function searchBooksByCategory(query, subject, signal) {
+  const q = tidyQuery(query);
+  const safeSubject = tidyQuery(subject);
+  const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(
+    q,
+  )}&subject=${encodeURIComponent(safeSubject)}`;
+
+  const res = await fetch(url, { method: "GET", signal });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+
+  const docs = Array.isArray(json?.docs) ? json.docs : [];
+  return docs
+    .map(mapDocToCard)
+    .filter((x) => x && typeof x === "object" && x.id);
 }
 
 function withTimeout(signal, timeoutMs) {
@@ -63,40 +102,51 @@ function withTimeout(signal, timeoutMs) {
   const abortFromUpstream = () => controller.abort();
   if (signal) {
     if (signal.aborted) controller.abort();
-    else signal.addEventListener('abort', abortFromUpstream, { once: true });
+    else signal.addEventListener("abort", abortFromUpstream, { once: true });
   }
 
   return {
     signal: controller.signal,
     cleanup: () => {
       clearTimeout(timeoutId);
-      if (signal) signal.removeEventListener('abort', abortFromUpstream);
+      if (signal) signal.removeEventListener("abort", abortFromUpstream);
     },
   };
 }
 
 function normalizeFetchError(err) {
-  const message = err?.message ? String(err.message) : '';
+  const message = err?.message ? String(err.message) : "";
   const lower = message.toLowerCase();
-  if (lower.includes('aborted') || lower.includes('abort')) return 'Request timeout. Coba lagi.';
-  if (lower.includes('network request failed')) return 'Koneksi bermasalah. Cek internet lalu coba lagi.';
-  return message || 'Request failed';
+  if (lower.includes("aborted") || lower.includes("abort"))
+    return "Request timeout. Coba lagi.";
+  if (lower.includes("network request failed"))
+    return "Koneksi bermasalah. Cek internet lalu coba lagi.";
+  return message || "Request failed";
 }
 
 export default function SearchScreen({ navigation }) {
-  const [query, setQuery] = useState('');
-  const [helperError, setHelperError] = useState('');
+  const [query, setQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [helperError, setHelperError] = useState("");
 
   const [items, setItems] = useState([]);
-  const [phase, setPhase] = useState('idle'); // idle | loading | ready | error
-  const [remoteError, setRemoteError] = useState('');
+  const [phase, setPhase] = useState("idle"); // idle | loading | ready | error
+  const [remoteError, setRemoteError] = useState("");
   const [everSearched, setEverSearched] = useState(false);
+  const [lastAllItems, setLastAllItems] = useState([]);
 
   const abortRef = useRef(null);
   const tokenRef = useRef(0);
 
-  const loading = phase === 'loading';
-  const showList = items.length > 0 && phase !== 'error';
+  const loading = phase === "loading";
+  const showLoading = useSmoothLoading(loading);
+  const showList = items.length > 0 && phase !== "error";
+  const currentCategory = useMemo(
+    () =>
+      CATEGORY_OPTIONS.find((item) => item.key === selectedCategory) ??
+      CATEGORY_OPTIONS[0],
+    [selectedCategory],
+  );
 
   useEffect(() => {
     return () => {
@@ -104,21 +154,27 @@ export default function SearchScreen({ navigation }) {
     };
   }, []);
 
-  const submitSearch = useCallback(async () => {
-    const message = validateQuery(query);
+  const runSearch = useCallback(async (queryText, categoryKey) => {
+    const activeCategory = categoryKey ?? selectedCategory;
+    const activeMeta =
+      CATEGORY_OPTIONS.find((item) => item.key === activeCategory) ??
+      CATEGORY_OPTIONS[0];
+    const cleanQuery = tidyQuery(queryText);
+
+    const message = validateQuery(cleanQuery);
     setHelperError(message);
 
     if (message) {
       setEverSearched(false);
       setItems([]);
-      setRemoteError('');
-      setPhase('idle');
+      setRemoteError("");
+      setPhase("idle");
       return;
     }
 
     setEverSearched(true);
-    setRemoteError('');
-    setPhase('loading');
+    setRemoteError("");
+    setPhase("loading");
 
     abortRef.current?.abort?.();
     const controller = new AbortController();
@@ -132,12 +188,27 @@ export default function SearchScreen({ navigation }) {
 
       let result;
       try {
-        result = await searchBooks(query, signal);
+        if (activeCategory === "all") {
+          result = await searchBooks(cleanQuery, signal);
+        } else {
+          result = await searchBooksByCategory(
+            cleanQuery,
+            activeMeta.subject,
+            signal,
+          );
+        }
       } catch (e) {
-        // Retry once on flaky device networks (common "Network request failed")
-        const msg = String(e?.message ?? '');
+        const msg = String(e?.message ?? "");
         if (!signal.aborted && /network request failed/i.test(msg)) {
-          result = await searchBooks(query, signal);
+          if (activeCategory === "all") {
+            result = await searchBooks(cleanQuery, signal);
+          } else {
+            result = await searchBooksByCategory(
+              cleanQuery,
+              activeMeta.subject,
+              signal,
+            );
+          }
         } else {
           throw e;
         }
@@ -147,57 +218,109 @@ export default function SearchScreen({ navigation }) {
 
       if (token !== tokenRef.current) return;
       setItems(result);
-      setPhase('ready');
+      if (activeCategory === "all") setLastAllItems(result);
+      setPhase("ready");
     } catch (e) {
       if (controller.signal.aborted) return;
       if (token !== tokenRef.current) return;
       setItems([]);
       setRemoteError(normalizeFetchError(e));
-      setPhase('error');
+      setPhase("error");
     }
-  }, [query]);
+  }, [selectedCategory]);
 
-  const onChange = useCallback((text) => {
-    setQuery(text);
-    if (helperError) setHelperError('');
-    if (phase === 'error') {
-      setRemoteError('');
-      setPhase('idle');
+  const submitSearch = useCallback(async () => {
+    await runSearch(query, selectedCategory);
+  }, [query, runSearch, selectedCategory]);
+
+  const onChange = useCallback(
+    (text) => {
+      setQuery(text);
+      if (helperError) setHelperError("");
+      if (phase === "error") {
+        setRemoteError("");
+        setPhase("idle");
+      }
+    },
+    [helperError, phase],
+  );
+
+  useEffect(() => {
+    if (selectedCategory === "all") {
+      setItems(lastAllItems);
+      setRemoteError("");
+      setHelperError("");
+      setPhase(lastAllItems.length ? "ready" : "idle");
+      setEverSearched(lastAllItems.length > 0);
+      return;
     }
-  }, [helperError, phase]);
+    if (tidyQuery(query).length >= 3) {
+      runSearch(query, selectedCategory);
+      return;
+    }
+    setItems([]);
+    setRemoteError("");
+    setHelperError("");
+    setPhase("idle");
+    setEverSearched(false);
+  }, [lastAllItems, runSearch, selectedCategory]);
 
   const contentEmpty = useMemo(() => {
     if (loading) return null;
-    if (phase === 'error') return null;
+    if (phase === "error") return null;
 
     if (!everSearched) {
-      return <EmptyState title="Cari Buku" message="Ketik minimal 3 karakter lalu tekan search." />;
+      return (
+        <EmptyState
+          title="Cari Buku"
+          message="Ketik minimal 3 karakter lalu tekan search."
+        />
+      );
     }
 
-    return <EmptyState title="Tidak ditemukan" message="Coba kata kunci lain." />;
-  }, [everSearched, loading, phase]);
+    return (
+      <EmptyState title="Tidak ditemukan" message="Coba kata kunci lain." />
+    );
+  }, [everSearched, loading, phase, selectedCategory]);
 
   const renderItem = useCallback(
     ({ item }) => (
-      <BookCard
-        title={item.title}
-        author={item.author}
-        coverId={item.coverId}
-        onPress={() => navigation.navigate('Detail', { workId: item.workId || item.id })}
-      />
+      <View style={styles.cardCell}>
+        <BookCard
+          title={item.title}
+          author={item.author}
+          coverId={item.coverId}
+          onPress={() =>
+            navigation.navigate("Detail", { workId: item.workId || item.id })
+          }
+        />
+      </View>
     ),
     [navigation],
   );
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safe}>
+    <ScreenContainer>
       <View style={styles.header}>
-        <SearchBar value={query} onChangeText={onChange} onSubmit={submitSearch} disabled={loading} />
-        {helperError ? <Text style={styles.helperError}>{helperError}</Text> : null}
+        <SearchBar
+          value={query}
+          onChangeText={onChange}
+          onSubmit={submitSearch}
+          disabled={loading}
+        />
+        <FilterCategory
+          categories={CATEGORY_OPTIONS}
+          selectedKey={selectedCategory}
+          onChange={setSelectedCategory}
+          disabled={loading}
+        />
+        {helperError ? (
+          <Text style={styles.helperError}>{helperError}</Text>
+        ) : null}
       </View>
 
-      {loading ? (
-        <LoadingIndicator />
+      {showLoading ? (
+        <LoadingIndicator message="Mencari buku..." />
       ) : remoteError ? (
         <View style={styles.errorWrap}>
           <ErrorState message="Gagal mengambil data pencarian." />
@@ -219,29 +342,49 @@ export default function SearchScreen({ navigation }) {
           keyboardShouldPersistTaps="handled"
         />
       )}
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#ffffff' },
-  header: { padding: 16, paddingBottom: 10, gap: 8 },
-  helperError: { color: '#dc2626', fontWeight: '800' },
+  header: {
+    padding: theme.spacing.lg,
+    paddingBottom: 10,
+    gap: theme.spacing.sm,
+  },
+  helperError: { color: theme.colors.danger, ...theme.typography.strong },
 
-  listContent: { paddingHorizontal: 16, paddingBottom: 24, flexGrow: 1 },
-  row: { gap: 12, paddingBottom: 12 },
+  listContent: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.xl,
+    flexGrow: 1,
+  },
+  row: {
+    gap: theme.spacing.md,
+    paddingBottom: theme.spacing.md,
+    justifyContent: "space-between",
+  },
+  cardCell: { width: "48%" },
 
-  errorWrap: { flex: 1, padding: 16, justifyContent: 'center', gap: 10 },
-  errorDetail: { textAlign: 'center', color: '#6b7280', fontWeight: '700' },
+  errorWrap: {
+    flex: 1,
+    padding: theme.spacing.lg,
+    justifyContent: "center",
+    gap: 10,
+  },
+  errorDetail: {
+    textAlign: "center",
+    color: theme.colors.textSecondary,
+    fontWeight: "700",
+  },
   retry: {
-    alignSelf: 'center',
+    alignSelf: "center",
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: theme.colors.border,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    borderRadius: 12,
-    backgroundColor: '#fff',
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.surface,
   },
-  retryText: { fontWeight: '900', color: '#111827' },
+  retryText: { ...theme.typography.strong, color: theme.colors.textPrimary },
 });
-

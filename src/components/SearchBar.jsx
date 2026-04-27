@@ -1,6 +1,7 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../constants/theme';
 
 function canClear(text) {
   return typeof text === 'string' && text.length > 0;
@@ -28,13 +29,13 @@ function SearchBar({
 
   return (
     <View style={[styles.wrap, disabled ? styles.wrapDisabled : null]}>
-      <Ionicons name="search-outline" size={18} color="#6b7280" />
+      <Ionicons name="search-outline" size={18} color={theme.colors.textSecondary} />
 
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#9ca3af"
+        placeholderTextColor={theme.colors.textMuted}
         autoCapitalize="none"
         autoCorrect={false}
         autoFocus={autoFocus}
@@ -52,7 +53,7 @@ function SearchBar({
           accessibilityLabel="Clear search"
           style={styles.iconButton}
         >
-          <Ionicons name="close-circle" size={18} color="#9ca3af" />
+          <Ionicons name="close-circle" size={18} color={theme.colors.textMuted} />
         </Pressable>
       ) : (
         <View style={styles.iconSpacer} />
@@ -69,9 +70,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#fff',
-    borderRadius: 14,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     paddingHorizontal: 12,
     paddingVertical: Platform.select({ ios: 12, android: 10, default: 10 }),
   },
@@ -82,8 +83,8 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 0,
     margin: 0,
-    color: '#111827',
-    fontWeight: '800',
+    color: theme.colors.textPrimary,
+    ...theme.typography.strong,
   },
   iconButton: { alignItems: 'center', justifyContent: 'center' },
   iconSpacer: { width: 18, height: 18 },

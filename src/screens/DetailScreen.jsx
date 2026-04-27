@@ -1,12 +1,14 @@
 import React, { useCallback, useMemo } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import useFetch from '../hooks/useFetch';
 import LoadingIndicator from '../components/LoadingIndicator';
 import ErrorState from '../components/ErrorState';
 import { fetchAuthor, fetchWorkDetail, fetchWorkEditions } from '../services/api';
 import useFavoriteStore from '../store/useFavoriteStore';
+import useSmoothLoading from '../hooks/useSmoothLoading';
+import ScreenContainer from '../components/ScreenContainer';
+import { theme } from '../constants/theme';
 
 function pickWorkId(routeParams) {
   const p = routeParams ?? {};
@@ -84,6 +86,7 @@ export default function DetailScreen({ route }) {
 
   const fetcher = useCallback(() => buildBookDetail(workId), [workId]);
   const { data, loading, error, refetch } = useFetch(fetcher, [fetcher]);
+  const showLoading = useSmoothLoading(loading);
 
   const viewModel = useMemo(() => {
     const work = data?.work ?? null;
@@ -148,27 +151,27 @@ export default function DetailScreen({ route }) {
 
   if (!workId) {
     return (
-      <SafeAreaView edges={['top']} style={styles.safe}>
+      <ScreenContainer>
         <ErrorState message="workId tidak ditemukan dari navigation params." />
-      </SafeAreaView>
+      </ScreenContainer>
     );
   }
 
-  if (loading) return <LoadingIndicator />;
+  if (showLoading) return <LoadingIndicator message="Memuat detail buku..." />;
   if (error)
     return (
-      <SafeAreaView edges={['top']} style={styles.safe}>
+      <ScreenContainer>
         <View style={styles.errorWrap}>
           <ErrorState message="Gagal memuat detail buku." />
           <Pressable onPress={refetch} style={styles.secondaryButton}>
             <Text style={styles.secondaryButtonText}>Coba Lagi</Text>
           </Pressable>
         </View>
-      </SafeAreaView>
+      </ScreenContainer>
     );
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safe}>
+    <ScreenContainer>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.top}>
           <View style={styles.coverFrame}>
@@ -220,31 +223,30 @@ export default function DetailScreen({ route }) {
           <Text style={styles.desc}>{viewModel.description}</Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#ffffff' },
-  content: { padding: 16, paddingBottom: 24, gap: 14 },
+  content: { padding: theme.spacing.lg, paddingBottom: theme.spacing.xl, gap: 14 },
 
   top: { flexDirection: 'row', gap: 14 },
   coverFrame: {
     width: 120,
     aspectRatio: 3 / 4,
-    borderRadius: 14,
+    borderRadius: theme.radius.lg,
     overflow: 'hidden',
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.colors.skeleton,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: theme.colors.border,
   },
   cover: { width: '100%', height: '100%' },
   coverFallback: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  coverFallbackText: { color: '#6b7280', fontWeight: '800' },
+  coverFallbackText: { color: theme.colors.textSecondary, ...theme.typography.strong },
 
   meta: { flex: 1, gap: 8 },
-  title: { fontSize: 18, fontWeight: '900', color: '#111827' },
-  author: { color: '#6b7280', fontWeight: '700' },
+  title: { fontSize: 18, fontWeight: '900', color: theme.colors.textPrimary },
+  author: { color: theme.colors.textSecondary, fontWeight: '700' },
 
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2 },
   pill: {
@@ -259,19 +261,19 @@ const styles = StyleSheet.create({
   pillMuted: {
     paddingVertical: 6,
     paddingHorizontal: 10,
-    borderRadius: 999,
-    backgroundColor: '#f3f4f6',
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.skeleton,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: theme.colors.border,
   },
   pillMutedText: { color: '#374151', fontWeight: '800', fontSize: 12 },
 
   button: {
     marginTop: 4,
-    backgroundColor: '#00D564',
+    backgroundColor: theme.colors.accent,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    borderRadius: 12,
+    borderRadius: theme.radius.md,
     alignSelf: 'flex-start',
   },
   buttonActive: { backgroundColor: '#111827' },
@@ -279,30 +281,30 @@ const styles = StyleSheet.create({
 
   card: {
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#ffffff',
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
     padding: 12,
-    borderRadius: 14,
+    borderRadius: theme.radius.lg,
     gap: 10,
   },
-  sectionTitle: { fontWeight: '900', color: '#111827', fontSize: 14 },
+  sectionTitle: { fontWeight: '900', color: theme.colors.textPrimary, fontSize: 14 },
 
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
-  rowLabel: { width: 110, color: '#6b7280', fontWeight: '800' },
-  rowValue: { flex: 1, color: '#111827', fontWeight: '800', textAlign: 'right' },
+  rowLabel: { width: 110, color: theme.colors.textSecondary, fontWeight: '800' },
+  rowValue: { flex: 1, color: theme.colors.textPrimary, fontWeight: '800', textAlign: 'right' },
 
-  desc: { color: '#111827', lineHeight: 20 },
+  desc: { color: theme.colors.textPrimary, lineHeight: 20 },
 
-  errorWrap: { flex: 1, padding: 16, justifyContent: 'center', gap: 12 },
+  errorWrap: { flex: 1, padding: theme.spacing.lg, justifyContent: 'center', gap: theme.spacing.md },
   secondaryButton: {
     alignSelf: 'center',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: theme.colors.border,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    borderRadius: 12,
-    backgroundColor: '#fff',
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.surface,
   },
-  secondaryButtonText: { fontWeight: '900', color: '#111827' },
+  secondaryButtonText: { ...theme.typography.strong, color: theme.colors.textPrimary },
 });
 
