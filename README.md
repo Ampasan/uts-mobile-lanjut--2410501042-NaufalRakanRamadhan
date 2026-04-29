@@ -86,7 +86,7 @@ Tema yang dipilih adalah Tema C (BookShelf)
 
 ## Penjelasan & Justifikasi State management
 
-Dalam proyek ini, saya menggunakan **Zustand** untuk mengelola state aplikasi. Alasan utamanya adalah kesederhanaan dan efisiensi performa. Dibandingkan **Redux**, Zustand jauh lebih praktis karena tidak membutuhkan banyak boilerplate (action, reducer, dispatcher) yang rumit. Untuk fitur seperti Daftar Favorit, Zustand sangat pas karena bisa langsung membuat *store* tanpa harus membungkus seluruh komponen dalam banyak Provider seperti pada **Context API**.
+Dalam proyek ini, saya menggunakan **Zustand** untuk mengelola state aplikasi. Alasan utamanya adalah kesederhanaan dan efisiensi performa. Dibandingkan **Redux**, Zustand jauh lebih praktis karena tidak membutuhkan banyak boilerplate (action, reducer, dispatcher) yang rumit. Untuk fitur seperti Daftar Favorit, Zustand sangat pas karena bisa langsung membuat *store* tanpa harus membungkus seluruh komponen dalam banyak Provider seperti pada **Context API**. Namun, Zustand juga memiliki kekurangan. Untuk aplikasi dengan state yang sangat kompleks dan membutuhkan middleware tingkat lanjut, Redux masih lebih unggul karena ekosistemnya yang lebih matang. Selain itu, Context API tetap menjadi pilihan bawaan React tanpa perlu dependensi tambahan.
 
 ## Daftar referensi
 
