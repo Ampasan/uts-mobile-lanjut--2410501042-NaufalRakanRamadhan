@@ -1,4 +1,4 @@
-# BookShelf
+# BookShelf - Project UTS Mobile Lanjut
 
 ## Informasi Mahasiswa
 
@@ -13,7 +13,7 @@ Tema yang dipilih adalah Tema C (BookShelf)
 ## Tech stack yang digunakan
 
 - **React Native**: 0.81.5
-- **Expo SDK**: ~54.0.34
+- **Expo**: ~54.0.34
 - **React**: 19.1.0
 - **State Management**: Zustand (^5.0.12)
 - **Navigation**:
@@ -33,7 +33,7 @@ Tema yang dipilih adalah Tema C (BookShelf)
   - react-native-gesture-handler (~2.28.0)
   - react-native-worklets (0.5.1)
 
-## Cara Menjalankan
+## Cara Install & Menjalankan
 
 1. Clone the repository:
    ```bash
@@ -48,7 +48,7 @@ Tema yang dipilih adalah Tema C (BookShelf)
    npx expo start
    ```
 
-## Screenshot
+## Screenshot Aplikasi
 
 ### Home Screen
 
@@ -84,7 +84,7 @@ Tema yang dipilih adalah Tema C (BookShelf)
 
 [Video Demo di Google Drive](https://drive.google.com/file/d/1A3bKTX5JSj80Bn76bMrOK981LLfauvUf/view?usp=sharing)
 
-## State management
+## Penjelasan & Justifikasi State management
 
 Dalam proyek ini, saya menggunakan **Zustand** untuk mengelola state aplikasi. Alasan utamanya adalah kesederhanaan dan efisiensi performa. Dibandingkan **Redux**, Zustand jauh lebih praktis karena tidak membutuhkan banyak boilerplate (action, reducer, dispatcher) yang rumit. Untuk fitur seperti Daftar Favorit, Zustand sangat pas karena bisa langsung membuat *store* tanpa harus membungkus seluruh komponen dalam banyak Provider seperti pada **Context API**.
 
@@ -100,7 +100,7 @@ Dalam proyek ini, saya menggunakan **Zustand** untuk mengelola state aplikasi. A
 - [Dokumentasi Npm](https://docs.npmjs.com/)
 - [Dokumentasi Axios](https://axios.rest/)
 
-# Refleksi
+# Refleksi Pengerjaan
 
 Selama proses pengembangan aplikasi ini, saya mengalami beberapa kendala yang cukup menantang, terutama pada bagian filter kategori. Awalnya, saya mengira filter bisa langsung diterapkan dari data yang diambil, namun ternyata data dari API tidak sepenuhnya sesuai dengan struktur kategori yang saya rancang. Saya harus mengambil nilai subject terlebih dahulu, lalu melakukan penyesuaian manual agar bisa cocok dengan kategori yang sudah dibuat di aplikasi. Proses ini cukup memakan waktu karena perlu memastikan hasil filter tetap relevan dan konsisten.
 
