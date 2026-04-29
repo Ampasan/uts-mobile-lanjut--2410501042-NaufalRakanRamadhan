@@ -1,16 +1,31 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  Animated,
+  FlatList,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import useFetch from "../hooks/useFetch";
-import { fetchDailyTrending, fetchSubjectWorks } from "../services/api";
+import { fetchDailyTrending, fetchSubjectWorks, searchBooks } from "../services/api";
 import useSmoothLoading from "../hooks/useSmoothLoading";
 import { theme } from "../constants/theme";
 
 import BookCard from "../components/BookCard";
-import LoadingIndicator from "../components/LoadingIndicator";
 import ErrorState from "../components/ErrorState";
 import ScreenContainer from "../components/ScreenContainer";
-import FilterCategory from "../components/FilterCategory";
+
+const PROFILE_IMAGE = require("../../assets/foto.webp");
 
 const CATEGORY_OPTIONS = [
   { key: "all", label: "All", subject: "" },
@@ -22,121 +37,151 @@ const CATEGORY_OPTIONS = [
   { key: "horror", label: "Horor", subject: "horror" },
 ];
 
-function workId(work, index) {
-  const key = typeof work?.key === "string" ? work.key : "";
+function getBookId(item, index) {
+  const key = typeof item?.key === "string" ? item.key : "";
   const tail = key.includes("/") ? key.split("/").pop() : key;
-  return tail || String(work?.cover_i) || `${index}`;
+  return tail || String(item?.cover_id ?? item?.cover_i ?? "") || `${index}`;
 }
 
-function workAuthor(work) {
-  if (Array.isArray(work?.authors) && work.authors[0]?.name)
-    return work.authors[0].name;
-  if (Array.isArray(work?.author_name) && work.author_name[0])
-    return work.author_name[0];
-  if (typeof work?.author_name === "string") return work.author_name;
+function getBookAuthor(item) {
+  if (Array.isArray(item?.authors) && item.authors[0]?.name) {
+    return item.authors[0].name;
+  }
+  if (Array.isArray(item?.author_name) && item.author_name[0]) {
+    return item.author_name[0];
+  }
+  if (typeof item?.author_name === "string" && item.author_name.trim()) {
+    return item.author_name.trim();
+  }
   return "Unknown";
 }
 
-function mapDocToCard(doc, index) {
-  const title =
-    typeof doc?.title === "string" && doc.title.trim()
-      ? doc.title.trim()
-      : "Untitled";
-  const author =
-    Array.isArray(doc?.author_name) && doc.author_name[0]
-      ? String(doc.author_name[0]).trim()
-      : "Unknown";
-  const key = typeof doc?.key === "string" ? doc.key : "";
-  const tail = key.includes("/") ? key.split("/").pop() : key;
+function shapeBook(item, index) {
   return {
-    id: tail || `${title}-${index}`,
-    title,
-    author,
-    coverId: doc?.cover_i ?? null,
+    id: getBookId(item, index),
+    title: item?.title?.trim?.() || "Untitled",
+    author: getBookAuthor(item),
+    coverId: item?.cover_id ?? item?.cover_i ?? null,
   };
 }
 
-async function fetchAllBooksFromSearch(limit = 5) {
-  const res = await fetch(
-    `https://openlibrary.org/search.json?q=${encodeURIComponent("book")}&limit=${limit}`,
+function takeBooks(list, limit) {
+  return (Array.isArray(list) ? list : [])
+    .filter((item) => Number.isFinite(item?.cover_id ?? item?.cover_i))
+    .slice(0, limit)
+    .map(shapeBook);
+}
+
+async function fetchMixedBooks(limit = 8) {
+  const data = await searchBooks("popular books");
+  return takeBooks(data?.docs, limit);
+}
+
+function CategorySkeleton() {
+  return (
+    <View style={styles.skeletonWrap}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chipsRow}
+      >
+        {CATEGORY_OPTIONS.map((item, index) => (
+          <View
+            key={`${item.key}-${index}`}
+            style={[
+              styles.skeletonChip,
+              index === 0 ? styles.skeletonChipWide : null,
+            ]}
+          />
+        ))}
+      </ScrollView>
+      <View style={styles.gridRow}>
+        <View style={styles.skeletonCard} />
+        <View style={styles.skeletonCard} />
+      </View>
+      <View style={styles.gridRow}>
+        <View style={styles.skeletonCard} />
+        <View style={styles.skeletonCard} />
+      </View>
+    </View>
   );
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const json = await res.json();
-  const docs = Array.isArray(json?.docs) ? json.docs : [];
-  return docs
-    .map(mapDocToCard)
-    .filter((item) => item && item.id && Number.isFinite(item.coverId))
-    .slice(0, limit);
+}
+
+function TrendingSkeleton() {
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.trendingRow}
+    >
+      {[0, 1, 2].map((item) => (
+        <View key={item} style={styles.trendingSkeleton} />
+      ))}
+    </ScrollView>
+  );
 }
 
 export default function HomeScreen({ navigation }) {
   const { data, loading, error, refetch } = useFetch(fetchDailyTrending, []);
-  const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [categoryBooks, setCategoryBooks] = useState([]);
   const [categoryLoading, setCategoryLoading] = useState(false);
   const [categoryError, setCategoryError] = useState("");
-  const showLoading = useSmoothLoading(loading && !refreshing);
-
-  const books = useMemo(() => {
-    const works = Array.isArray(data?.works) ? data.works : [];
-    const withCover = works.filter((w) => Number.isFinite(w?.cover_i));
-    return withCover.slice(0, 4).map((w, idx) => ({
-      id: workId(w, idx),
-      title: w?.title ?? "Untitled",
-      author: workAuthor(w),
-      coverId: w?.cover_i ?? null,
-    }));
-  }, [data]);
+  const [refreshing, setRefreshing] = useState(false);
+  const gridAnim = useRef(new Animated.Value(1)).current;
 
   const currentCategory = useMemo(
     () =>
-      CATEGORY_OPTIONS.find((item) => item.key === selectedCategory) ??
+      CATEGORY_OPTIONS.find((item) => item.key === selectedCategory) ||
       CATEGORY_OPTIONS[0],
     [selectedCategory],
   );
 
-  const loadCategoryBooks = useCallback(async (subject) => {
-    setCategoryLoading(true);
-    setCategoryError("");
-    try {
-      let mapped = [];
-      if (!subject) {
-        mapped = await fetchAllBooksFromSearch(4);
-      } else {
-        const result = await fetchSubjectWorks(subject, { limit: 10 });
-        const works = Array.isArray(result?.works) ? result.works : [];
-        mapped = works
-          .filter((w) => Number.isFinite(w?.cover_id ?? w?.cover_i))
-          .slice(0, 4)
-          .map((w, idx) => ({
-            id: workId(w, idx),
-            title: w?.title ?? "Untitled",
-            author: workAuthor(w),
-            coverId: w?.cover_id ?? w?.cover_i ?? null,
-          }));
+  const trendingBooks = useMemo(() => takeBooks(data?.works, 4), [data]);
+  const showTrendingSkeleton = useSmoothLoading(loading && !refreshing);
+  const showCategorySkeleton = useSmoothLoading(categoryLoading && !refreshing);
+
+  const animateGridIn = useCallback(() => {
+    gridAnim.setValue(0.92);
+    Animated.timing(gridAnim, {
+      toValue: 1,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+  }, [gridAnim]);
+
+  const loadCategoryBooks = useCallback(
+    async (subject) => {
+      setCategoryLoading(true);
+      setCategoryError("");
+
+      try {
+        const books = !subject
+          ? await fetchMixedBooks(6)
+          : takeBooks(
+              (await fetchSubjectWorks(subject, { limit: 12 }))?.works,
+              6,
+            );
+
+        setCategoryBooks(books);
+        animateGridIn();
+      } catch (loadError) {
+        setCategoryBooks([]);
+        setCategoryError("Buku tidak ditemukan");
+      } finally {
+        setCategoryLoading(false);
       }
-      setCategoryBooks(mapped);
-    } catch (e) {
-      setCategoryBooks([]);
-      setCategoryError("Gagal memuat kategori.");
-    } finally {
-      setCategoryLoading(false);
-    }
-  }, []);
+    },
+    [animateGridIn],
+  );
 
   useEffect(() => {
     loadCategoryBooks(currentCategory.subject);
   }, [currentCategory.subject, loadCategoryBooks]);
 
-  const showCategoryLoading = useSmoothLoading(categoryLoading && !refreshing);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await refetch();
-    await loadCategoryBooks(currentCategory.subject);
-    setRefreshing(false);
-  }, [currentCategory.subject, loadCategoryBooks, refetch]);
+  const openAboutScreen = useCallback(() => {
+    navigation.navigate("About");
+  }, [navigation]);
 
   const openDetail = useCallback(
     (book) => {
@@ -145,9 +190,48 @@ export default function HomeScreen({ navigation }) {
     [navigation],
   );
 
-  const renderItem = useCallback(
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+      await loadCategoryBooks(currentCategory.subject);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [currentCategory.subject, loadCategoryBooks, refetch]);
+
+  const renderGridItem = useCallback(
     ({ item }) => (
-      <View style={styles.cardCell}>
+      <Animated.View
+        style={[
+          styles.gridCell,
+          {
+            opacity: gridAnim,
+            transform: [
+              {
+                translateY: gridAnim.interpolate({
+                  inputRange: [0.92, 1],
+                  outputRange: [10, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <BookCard
+          title={item.title}
+          author={item.author}
+          coverId={item.coverId}
+          onPress={() => openDetail(item)}
+        />
+      </Animated.View>
+    ),
+    [gridAnim, openDetail],
+  );
+
+  const renderTrendingItem = useCallback(
+    ({ item }) => (
+      <View style={styles.trendingCardWrap}>
         <BookCard
           title={item.title}
           author={item.author}
@@ -159,67 +243,109 @@ export default function HomeScreen({ navigation }) {
     [openDetail],
   );
 
-  if (showLoading) return <LoadingIndicator message="Mengambil buku trending..." />;
-  if (error) return <ErrorState message="Gagal memuat data trending" />;
+  const renderHeader = () => (
+    <View style={styles.headerBlock}>
+      <View style={styles.topBar}>
+        <View style={styles.titleWrap}>
+          <Text style={styles.brandTitle}>BookShelf</Text>
+          <Text style={styles.brandSubtitle}>Jelajahi Buku Tanpa Batas</Text>
+        </View>
 
-  return (
-    <ScreenContainer>
-      <View style={styles.header}>
-        <Text style={styles.title}>Trending Hari Ini</Text>
-        <Text style={styles.subtitle}>
-          Ringkasan buku populer hari ini, plus koleksi berdasarkan kategori di
-          bawah.
-        </Text>
+        <Pressable onPress={openAboutScreen} style={styles.avatarButton}>
+          <Image
+            source={PROFILE_IMAGE}
+            style={styles.avatarImage}
+            resizeMode="cover"
+          />
+        </Pressable>
       </View>
 
+      <View style={styles.sectionBlock}>
+        <Text style={styles.sectionTitle}>Buku yang Sedang Tren</Text>
+        <Text style={styles.sectionHint}>
+          Pilihan populer untuk dibaca hari ini.
+        </Text>
+        {showTrendingSkeleton ? (
+          <TrendingSkeleton />
+        ) : error ? (
+          <ErrorState message="Buku tren belum tersedia" />
+        ) : (
+          <FlatList
+            data={trendingBooks}
+            keyExtractor={(item) => `trending-${item.id}`}
+            renderItem={renderTrendingItem}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.trendingRow}
+            ListEmptyComponent={
+              <ErrorState message="Buku tren belum tersedia" />
+            }
+          />
+        )}
+      </View>
+
+      <View style={styles.sectionBlock}>
+        <Text style={styles.sectionTitle}>Telusuri berdasarkan Kategori</Text>
+        <Text style={styles.sectionHint}>
+          Pilih kategori untuk melihat buku sesuai pilihanmu.
+        </Text>
+
+        {showCategorySkeleton && categoryBooks.length === 0 ? (
+          <CategorySkeleton />
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipsRow}
+          >
+            {CATEGORY_OPTIONS.map((item) => {
+              const active = item.key === selectedCategory;
+              return (
+                <Pressable
+                  key={item.key}
+                  onPress={() => setSelectedCategory(item.key)}
+                  style={[styles.chip, active ? styles.chipActive : null]}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      active ? styles.chipTextActive : null,
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
+      </View>
+    </View>
+  );
+
+  return (
+    <ScreenContainer edges={["top"]}>
       <FlatList
-        data={categoryBooks}
+        data={showCategorySkeleton ? [] : categoryBooks}
         keyExtractor={(item) => item.id}
-        renderItem={renderItem}
+        renderItem={renderGridItem}
         numColumns={2}
-        columnWrapperStyle={styles.row}
-        contentContainerStyle={styles.listContent}
         refreshing={refreshing}
         onRefresh={onRefresh}
-        removeClippedSubviews
-        initialNumToRender={10}
-        windowSize={7}
-        ListHeaderComponent={
-          <View style={styles.sectionWrap}>
-            <Text style={styles.sectionTitle}>Trending</Text>
-            <FlatList
-              data={books}
-              keyExtractor={(item) => `trending-${item.id}`}
-              renderItem={renderItem}
-              numColumns={2}
-              columnWrapperStyle={styles.row}
-              scrollEnabled={false}
-              contentContainerStyle={styles.sectionList}
-              ListEmptyComponent={
-                <ErrorState message="Trending belum tersedia." />
-              }
-            />
-
-            <Text style={styles.sectionTitle}>
-              Kategori: {currentCategory.label}
-            </Text>
-            <FilterCategory
-              categories={CATEGORY_OPTIONS}
-              selectedKey={selectedCategory}
-              onChange={setSelectedCategory}
-              disabled={refreshing || categoryLoading}
-            />
-
-            {showCategoryLoading ? (
-              <LoadingIndicator message="Mengambil buku kategori..." />
-            ) : null}
-            {categoryError ? <ErrorState message={categoryError} /> : null}
-          </View>
-        }
+        showsVerticalScrollIndicator={false}
+        columnWrapperStyle={styles.gridRow}
+        contentContainerStyle={styles.screenContent}
+        ListHeaderComponent={renderHeader}
         ListEmptyComponent={
-          !showCategoryLoading && !categoryError ? (
-            <ErrorState message="Data kategori tidak tersedia" />
-          ) : null
+          showCategorySkeleton ? null : categoryError ? (
+            <View style={styles.emptyWrap}>
+              <Text style={styles.emptyText}>{categoryError}</Text>
+            </View>
+          ) : (
+            <View style={styles.emptyWrap}>
+              <Text style={styles.emptyText}>Buku tidak ditemukan</Text>
+            </View>
+          )
         }
       />
     </ScreenContainer>
@@ -227,28 +353,127 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm },
-  title: { ...theme.typography.title, color: theme.colors.textPrimary },
+  screenContent: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.xlg,
+    paddingBottom: 120,
+  },
+  headerBlock: {
+    gap: theme.spacing.xl,
+    paddingBottom: theme.spacing.lg,
+  },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+  titleWrap: {
+    gap: 4,
+  },
+  brandTitle: {
+    ...theme.typography.title,
+    color: theme.colors.textPrimary,
+  },
+  brandSubtitle: {
+    fontSize: 15,
+    color: theme.colors.textMuted,
+    fontWeight: "500",
+  },
+  avatarButton: {
+    width: 42,
+    height: 42,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    ...theme.shadows.soft,
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.skeleton,
+  },
+  sectionBlock: {
+    gap: theme.spacing.sm,
+  },
   sectionTitle: {
     ...theme.typography.sectionTitle,
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.sm,
   },
-  subtitle: {
-    marginTop: theme.spacing.xs,
-    color: theme.colors.textSecondary,
+  sectionHint: {
     ...theme.typography.body,
+    color: theme.colors.textMuted,
   },
-  sectionWrap: { paddingBottom: theme.spacing.md, gap: theme.spacing.sm },
-  sectionList: { paddingBottom: theme.spacing.md },
-  listContent: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-  },
-  row: {
+  trendingRow: {
     gap: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    justifyContent: "space-between",
+    paddingTop: theme.spacing.sm,
+    paddingRight: theme.spacing.lg,
   },
-  cardCell: { width: "48%" },
+  trendingCardWrap: {
+    width: 148,
+  },
+  gridRow: {
+    justifyContent: "space-between",
+    marginBottom: theme.spacing.md,
+  },
+  gridCell: {
+    width: "47.5%",
+  },
+  chipsRow: {
+    gap: theme.spacing.sm,
+    paddingTop: theme.spacing.sm,
+    paddingRight: theme.spacing.lg,
+    paddingBottom: 4,
+  },
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.chipBg,
+  },
+  chipActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.textPrimary,
+  },
+  chipTextActive: {
+    color: theme.colors.onPrimary,
+  },
+  emptyWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: theme.spacing.xxl,
+  },
+  emptyText: {
+    ...theme.typography.body,
+    color: theme.colors.textMuted,
+  },
+  skeletonWrap: {
+    gap: theme.spacing.md,
+  },
+  skeletonChip: {
+    width: 78,
+    height: 40,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.chipBg,
+  },
+  skeletonChipWide: {
+    width: 64,
+  },
+  skeletonCard: {
+    width: "47.5%",
+    aspectRatio: 0.7,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.skeleton,
+  },
+  trendingSkeleton: {
+    width: 148,
+    aspectRatio: 0.7,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.skeleton,
+  },
 });

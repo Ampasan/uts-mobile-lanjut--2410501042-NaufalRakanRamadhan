@@ -3,7 +3,7 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import ScreenContainer from '../components/ScreenContainer';
 import { theme } from '../constants/theme';
 
-const PROFILE_IMAGE_URL = 'https://res.cloudinary.com/drrmbeiyk/image/upload/v1777217745/foto_geztgv.webp';
+const PROFILE_IMAGE = require('../../assets/foto.webp');
 
 const PROFILE = {
   name: 'Naufal Rakan Ramadhan',
@@ -15,7 +15,7 @@ const PROFILE = {
 
 function InfoRow({ label, value }) {
   return (
-    <View style={styles.infoRow}>
+    <View style={styles.infoCard}>
       <Text style={styles.infoLabel}>{label}</Text>
       <Text style={styles.infoValue}>{value}</Text>
     </View>
@@ -24,26 +24,31 @@ function InfoRow({ label, value }) {
 
 export default function AboutScreen() {
   return (
-    <ScreenContainer>
+    <ScreenContainer edges={['top']}>
       <View style={styles.container}>
-        <Text style={styles.title}>About BookShelf</Text>
-        <Text style={styles.subtitle}>Informasi Developer.</Text>
-
         <View style={styles.card}>
-          <Image source={{ uri: PROFILE_IMAGE_URL }} style={styles.avatar} resizeMode="cover" />
-
-          <View style={styles.infoWrap}>
-            <InfoRow label="Nama" value={PROFILE.name} />
-            <InfoRow label="NIM" value={PROFILE.nim} />
-            <InfoRow label="Kelas" value={PROFILE.className} />
-            <InfoRow label="Tema" value={PROFILE.theme} />
-            <InfoRow label="Credit API" value={PROFILE.apiCredit} />
+          <View style={styles.profileBlock}>
+            <Image
+              source={PROFILE_IMAGE}
+              style={styles.avatar}
+              resizeMode="cover"
+            />
+            <Text style={styles.name}>{PROFILE.name}</Text>
+            <Text style={styles.identity}>NIM: {PROFILE.nim}</Text>
+            <Text style={styles.identity}>Kelas: {PROFILE.className}</Text>
           </View>
-        </View>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Dibuat oleh {PROFILE.name}</Text>
-          <Text style={styles.footerSubtext}>BookShelf</Text>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Info Aplikasi</Text>
+            <View style={styles.infoWrap}>
+              <InfoRow label="Tema" value={PROFILE.theme} />
+              <InfoRow label="API" value={PROFILE.apiCredit} />
+            </View>
+          </View>
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Aplikasi ini dibuat oleh {PROFILE.name} dengan penuh semangat, logika, dan secangkir kopi.</Text>
+          </View>
         </View>
       </View>
     </ScreenContainer>
@@ -51,46 +56,92 @@ export default function AboutScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: theme.spacing.lg, gap: theme.spacing.md },
-  title: { ...theme.typography.title, color: theme.colors.textPrimary },
-  subtitle: { color: theme.colors.textSecondary, ...theme.typography.caption },
+  container: {
+    flex: 1,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.xl,
+    justifyContent: 'flex-start',
+  },
   card: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: theme.colors.primary,
     borderRadius: theme.radius.xl,
     backgroundColor: theme.colors.surface,
-    padding: 14,
-    gap: 14,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.xl,
+    gap: theme.spacing.xl,
+    ...theme.shadows.float,
+  },
+  profileBlock: {
+    alignItems: 'center',
+    gap: theme.spacing.sm,
   },
   avatar: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    alignSelf: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 4,
+    borderColor: theme.colors.primary,
     backgroundColor: theme.colors.skeleton,
   },
-  infoWrap: { gap: theme.spacing.sm },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.skeleton,
-    paddingBottom: 6,
+  name: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: theme.colors.textPrimary,
+    textAlign: 'center',
   },
-  infoLabel: { color: theme.colors.textSecondary, fontWeight: '700' },
-  infoValue: { color: theme.colors.textPrimary, ...theme.typography.strong },
+  identity: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  section: {
+    width: '100%',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: theme.colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  infoWrap: {
+    width: '100%',
+    gap: theme.spacing.sm,
+  },
+  infoCard: {
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 14,
+    paddingHorizontal: theme.spacing.md,
+    alignItems: 'center',
+    gap: 4,
+  },
+  infoLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: 'rgba(255, 255, 255, 0.8)',
+    textTransform: 'uppercase',
+  },
+  infoValue: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
   footer: {
-    marginTop: 'auto',
-    paddingTop: 12,
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-    gap: 2,
+    paddingTop: theme.spacing.xs,
   },
-  footerText: { color: theme.colors.textPrimary, ...theme.typography.strong },
-  footerSubtext: { color: theme.colors.textSecondary, ...theme.typography.caption },
+  footerText: {
+    color: theme.colors.primary,
+    fontSize: 14,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
 });
 

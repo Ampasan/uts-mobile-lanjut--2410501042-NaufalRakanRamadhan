@@ -2,7 +2,11 @@ import axios from 'axios';
 
 const client = axios.create({
   baseURL: 'https://openlibrary.org',
-  timeout: 15000,
+  timeout: 20000,
+  headers: {
+    'Accept': 'application/json',
+    'User-Agent': 'BookshelfApp/1.0 (contact: support@example.com)'
+  }
 });
 
 function unwrapData(response) {
@@ -40,5 +44,15 @@ export async function fetchAuthor(authorKey) {
   const id = key.includes('/') ? key.split('/').filter(Boolean).pop() : key;
   if (!id) throw new Error('Missing author key');
   return client.get(`/authors/${id}.json`).then(unwrapData);
+}
+
+export async function searchBooks(query, { subject = '', signal = null } = {}) {
+  const q = String(query ?? '').trim();
+  if (!q) throw new Error('Query is required');
+  
+  const params = { q };
+  if (subject) params.subject = subject;
+  
+  return client.get('/search.json', { params, signal }).then(unwrapData);
 }
 

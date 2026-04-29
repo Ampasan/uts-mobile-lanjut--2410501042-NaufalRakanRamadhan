@@ -14,6 +14,7 @@ import ErrorState from "../components/ErrorState";
 import BookCard from "../components/BookCard";
 import ScreenContainer from "../components/ScreenContainer";
 import FilterCategory from "../components/FilterCategory";
+import { searchBooks as apiSearchBooks } from "../services/api";
 import useSmoothLoading from "../hooks/useSmoothLoading";
 import { theme } from "../constants/theme";
 
@@ -65,31 +66,16 @@ function mapDocToCard(doc) {
 }
 
 async function searchBooks(query, signal) {
-  const q = tidyQuery(query);
-  const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}`;
-
-  const res = await fetch(url, { method: "GET", signal });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const json = await res.json();
-
-  const docs = Array.isArray(json?.docs) ? json.docs : [];
+  const data = await apiSearchBooks(query, { signal });
+  const docs = Array.isArray(data?.docs) ? data.docs : [];
   return docs
     .map(mapDocToCard)
     .filter((x) => x && typeof x === "object" && x.id);
 }
 
 async function searchBooksByCategory(query, subject, signal) {
-  const q = tidyQuery(query);
-  const safeSubject = tidyQuery(subject);
-  const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(
-    q,
-  )}&subject=${encodeURIComponent(safeSubject)}`;
-
-  const res = await fetch(url, { method: "GET", signal });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const json = await res.json();
-
-  const docs = Array.isArray(json?.docs) ? json.docs : [];
+  const data = await apiSearchBooks(query, { subject, signal });
+  const docs = Array.isArray(data?.docs) ? data.docs : [];
   return docs
     .map(mapDocToCard)
     .filter((x) => x && typeof x === "object" && x.id);
@@ -130,7 +116,7 @@ export default function SearchScreen({ navigation }) {
   const [helperError, setHelperError] = useState("");
 
   const [items, setItems] = useState([]);
-  const [phase, setPhase] = useState("idle"); // idle | loading | ready | error
+  const [phase, setPhase] = useState("idle");
   const [remoteError, setRemoteError] = useState("");
   const [everSearched, setEverSearched] = useState(false);
   const [lastAllItems, setLastAllItems] = useState([]);
@@ -147,6 +133,10 @@ export default function SearchScreen({ navigation }) {
       CATEGORY_OPTIONS[0],
     [selectedCategory],
   );
+  const resultCountLabel = useMemo(() => {
+    const total = items.length;
+    return `${total} ditemukan`;
+  }, [items.length]);
 
   useEffect(() => {
     return () => {
@@ -300,8 +290,12 @@ export default function SearchScreen({ navigation }) {
   );
 
   return (
-    <ScreenContainer>
+    <ScreenContainer edges={["top"]}>
       <View style={styles.header}>
+        <Text style={styles.title}>Cari Buku</Text>
+        <Text style={styles.subtitle}>
+          Temukan buku favoritmu dengan pencarian.
+        </Text>
         <SearchBar
           value={query}
           onChangeText={onChange}
@@ -337,6 +331,14 @@ export default function SearchScreen({ navigation }) {
           numColumns={2}
           columnWrapperStyle={styles.row}
           contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            everSearched ? (
+              <View style={styles.resultBar}>
+                <Text style={styles.resultTitle}>Hasil ditemukan</Text>
+                <Text style={styles.resultCount}>{resultCountLabel}</Text>
+              </View>
+            ) : null
+          }
           ListEmptyComponent={contentEmpty}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -348,20 +350,44 @@ export default function SearchScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   header: {
-    padding: theme.spacing.lg,
-    paddingBottom: 10,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.xs,
+    paddingBottom: theme.spacing.xs,
     gap: theme.spacing.sm,
+  },
+  title: {
+    ...theme.typography.title,
+    color: theme.colors.textPrimary,
+  },
+  subtitle: {
+    ...theme.typography.body,
+    color: theme.colors.textMuted,
   },
   helperError: { color: theme.colors.danger, ...theme.typography.strong },
 
   listContent: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.xlg,
+    paddingBottom: 100,
     flexGrow: 1,
   },
+  resultBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingBottom: theme.spacing.lg,
+  },
+  resultTitle: {
+    ...theme.typography.sectionTitle,
+    color: theme.colors.textPrimary,
+  },
+  resultCount: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: theme.colors.textMuted,
+  },
   row: {
-    gap: theme.spacing.md,
-    paddingBottom: theme.spacing.md,
+    gap: theme.spacing.lg,
+    paddingBottom: theme.spacing.lg,
     justifyContent: "space-between",
   },
   cardCell: { width: "48%" },
@@ -374,7 +400,7 @@ const styles = StyleSheet.create({
   },
   errorDetail: {
     textAlign: "center",
-    color: theme.colors.textSecondary,
+    color: theme.colors.textMuted,
     fontWeight: "700",
   },
   retry: {

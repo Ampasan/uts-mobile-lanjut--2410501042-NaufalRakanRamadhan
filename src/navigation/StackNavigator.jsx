@@ -21,8 +21,8 @@ export default function StackNavigator() {
         options={{
           title: 'Book Detail',
           headerTitleAlign: 'center',
-          headerStyle: { backgroundColor: theme.colors.surface },
-          headerTintColor: theme.colors.textPrimary,
+          headerStyle: { backgroundColor: theme.colors.primary },
+          headerTintColor: theme.colors.onPrimary,
           headerTitleStyle: { ...theme.typography.strong },
         }}
       />

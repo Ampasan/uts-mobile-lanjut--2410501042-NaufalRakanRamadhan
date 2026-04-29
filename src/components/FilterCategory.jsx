@@ -1,9 +1,16 @@
-import React, { memo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { memo, useCallback } from 'react';
+import { LayoutAnimation, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../constants/theme';
 
 function FilterCategory({ categories, selectedKey, onChange, disabled = false }) {
   const safeCategories = Array.isArray(categories) ? categories : [];
+  const handleChange = useCallback(
+    (key) => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      onChange?.(key);
+    },
+    [onChange],
+  );
 
   return (
     <View style={styles.wrap}>
@@ -16,7 +23,7 @@ function FilterCategory({ categories, selectedKey, onChange, disabled = false })
           return (
             <Pressable
               key={key}
-              onPress={() => onChange?.(key)}
+              onPress={() => handleChange(key)}
               disabled={disabled}
               style={[styles.chip, active ? styles.chipActive : null, disabled ? styles.disabled : null]}
             >
@@ -33,20 +40,20 @@ export default memo(FilterCategory);
 
 const styles = StyleSheet.create({
   wrap: { paddingHorizontal: theme.spacing.lg },
-  row: { gap: theme.spacing.sm, paddingBottom: theme.spacing.sm },
+  row: { gap: theme.spacing.sm, paddingBottom: theme.spacing.sm, paddingRight: theme.spacing.lg },
   chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
     borderRadius: theme.radius.pill,
-    borderWidth: 1,
+    borderWidth: 1.2,
     borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.card,
   },
   chipActive: {
-    borderColor: theme.colors.accent,
-    backgroundColor: '#e9fff2',
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.chipActiveBg,
   },
-  text: { color: theme.colors.textSecondary, ...theme.typography.caption },
-  textActive: { color: '#047857', ...theme.typography.strong },
+  text: { color: theme.colors.textPrimary, ...theme.typography.caption },
+  textActive: { color: theme.colors.primary, ...theme.typography.strong },
   disabled: { opacity: 0.7 },
 });

@@ -4,6 +4,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import useFetch from '../hooks/useFetch';
 import LoadingIndicator from '../components/LoadingIndicator';
 import ErrorState from '../components/ErrorState';
+import ButtonFavorite from '../components/ButtonFavorite';
 import { fetchAuthor, fetchWorkDetail, fetchWorkEditions } from '../services/api';
 import useFavoriteStore from '../store/useFavoriteStore';
 import useSmoothLoading from '../hooks/useSmoothLoading';
@@ -66,13 +67,15 @@ async function buildBookDetail(workId) {
   return { work, edition, authors: authors.filter(Boolean) };
 }
 
-function InfoRow({ label, value }) {
+function MetaBadge({ label, value }) {
   const text = String(value ?? '').trim();
   if (!text) return null;
   return (
-    <View style={styles.row}>
-      <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={styles.rowValue}>{text}</Text>
+    <View style={styles.badge}>
+      <Text style={styles.badgeLabel}>{label}</Text>
+      <Text numberOfLines={2} style={styles.badgeValue}>
+        {text}
+      </Text>
     </View>
   );
 }
@@ -100,11 +103,6 @@ export default function DetailScreen({ route }) {
       textValue(edition?.description) ||
       'Tidak ada sinopsis.';
 
-    const editionName =
-      textValue(edition?.edition_name) ||
-      textValue(edition?.subtitle) ||
-      '';
-
     const authors = Array.isArray(data?.authors) ? data.authors : [];
     const authorLine = authors.length ? authors.join(', ') : 'Unknown';
 
@@ -115,18 +113,14 @@ export default function DetailScreen({ route }) {
 
     const publisher = cleanJoin(edition?.publishers);
     const language = cleanJoin(edition?.languages?.map((l) => l?.key?.split('/').pop()));
-    const pages = Number.isFinite(edition?.number_of_pages) ? String(edition.number_of_pages) : '';
-
     return {
       coverId: Number.isFinite(coverId) ? coverId : null,
       coverUri,
       title,
-      editionName,
       authorLine,
       publishYear,
       publisher,
       language,
-      pages,
       description,
     };
   }, [data]);
@@ -173,7 +167,7 @@ export default function DetailScreen({ route }) {
   return (
     <ScreenContainer>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.top}>
+        <View style={styles.heroCard}>
           <View style={styles.coverFrame}>
             {viewModel.coverUri ? (
               <Image source={{ uri: viewModel.coverUri }} style={styles.cover} resizeMode="cover" />
@@ -184,43 +178,32 @@ export default function DetailScreen({ route }) {
             )}
           </View>
 
-          <View style={styles.meta}>
+          <View style={styles.headlineBlock}>
             <Text style={styles.title}>{viewModel.title}</Text>
             <Text style={styles.author}>{viewModel.authorLine}</Text>
-
-            <View style={styles.pills}>
-              {viewModel.publishYear ? (
-                <View style={styles.pillMuted}>
-                  <Text style={styles.pillMutedText}>{viewModel.publishYear}</Text>
-                </View>
-              ) : null}
-            </View>
-
-            <Pressable
-              onPress={toggleFavorite}
-              style={[styles.button, isFavorite ? styles.buttonActive : null]}
-            >
-              <Text style={styles.buttonText}>
-                {isFavorite ? 'Hapus dari Favorit' : 'Tambah ke Favorit'}
-              </Text>
-            </Pressable>
           </View>
+
+          <View style={styles.badgesRow}>
+            <MetaBadge label="Tahun" value={viewModel.publishYear} />
+            <MetaBadge label="Publisher" value={viewModel.publisher} />
+            <MetaBadge label="Bahasa" value={viewModel.language} />
+          </View>
+
+          <ButtonFavorite
+            onPress={toggleFavorite}
+            label={isFavorite ? 'Hapus dari Favorit' : 'Tambah ke Favorit'}
+          />
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Informasi</Text>
-          <InfoRow label="Edisi" value={viewModel.editionName} />
-          <InfoRow label="Judul" value={viewModel.title} />
-          <InfoRow label="Author" value={viewModel.authorLine} />
-          <InfoRow label="Tahun terbit" value={viewModel.publishYear} />
-          <InfoRow label="Publisher" value={viewModel.publisher} />
-          <InfoRow label="Bahasa" value={viewModel.language} />
-          <InfoRow label="Pages" value={viewModel.pages} />
-        </View>
-
-        <View style={styles.card}>
+        <View style={styles.synopsisCard}>
           <Text style={styles.sectionTitle}>Sinopsis</Text>
-          <Text style={styles.desc}>{viewModel.description}</Text>
+          <ScrollView
+            nestedScrollEnabled
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.synopsisScrollContent}
+          >
+            <Text style={styles.desc}>{viewModel.description}</Text>
+          </ScrollView>
         </View>
       </ScrollView>
     </ScreenContainer>
@@ -228,72 +211,98 @@ export default function DetailScreen({ route }) {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: theme.spacing.lg, paddingBottom: theme.spacing.xl, gap: 14 },
-
-  top: { flexDirection: 'row', gap: 14 },
+  content: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.sm,
+    paddingBottom: theme.spacing.xl,
+    gap: theme.spacing.lg,
+  },
+  heroCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.xl,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.lg,
+    alignItems: 'center',
+    gap: theme.spacing.lg,
+    ...theme.shadows.soft,
+  },
   coverFrame: {
-    width: 120,
+    width: 220,
     aspectRatio: 3 / 4,
-    borderRadius: theme.radius.lg,
+    borderRadius: theme.radius.xl,
     overflow: 'hidden',
     backgroundColor: theme.colors.skeleton,
     borderWidth: 1,
     borderColor: theme.colors.border,
+    ...theme.shadows.soft,
   },
   cover: { width: '100%', height: '100%' },
   coverFallback: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   coverFallbackText: { color: theme.colors.textSecondary, ...theme.typography.strong },
-
-  meta: { flex: 1, gap: 8 },
-  title: { fontSize: 18, fontWeight: '900', color: theme.colors.textPrimary },
-  author: { color: theme.colors.textSecondary, fontWeight: '700' },
-
-  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2 },
-  pill: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    backgroundColor: '#ecfdf5',
-    borderWidth: 1,
-    borderColor: '#a7f3d0',
+  headlineBlock: {
+    width: '100%',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
   },
-  pillText: { color: '#065f46', fontWeight: '800', fontSize: 12 },
-  pillMuted: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.skeleton,
+  title: {
+    ...theme.typography.title,
+    color: theme.colors.textPrimary,
+    textAlign: 'center',
+  },
+  author: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+  },
+  badgesRow: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
+  badge: {
+    minWidth: '31%',
+    flexGrow: 1,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.surfaceMuted,
     borderWidth: 1,
     borderColor: theme.colors.border,
-  },
-  pillMutedText: { color: '#374151', fontWeight: '800', fontSize: 12 },
-
-  button: {
-    marginTop: 4,
-    backgroundColor: theme.colors.accent,
+    paddingHorizontal: theme.spacing.md,
     paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: theme.radius.md,
-    alignSelf: 'flex-start',
   },
-  buttonActive: { backgroundColor: '#111827' },
-  buttonText: { color: '#fff', fontWeight: '900' },
-
-  card: {
+  badgeLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.textMuted,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  badgeValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  synopsisCard: {
     borderWidth: 1,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
-    padding: 12,
-    borderRadius: theme.radius.lg,
-    gap: 10,
+    padding: theme.spacing.lg,
+    borderRadius: theme.radius.xl,
+    gap: theme.spacing.sm,
+    minHeight: 240,
+    ...theme.shadows.soft,
   },
-  sectionTitle: { fontWeight: '900', color: theme.colors.textPrimary, fontSize: 14 },
-
-  row: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
-  rowLabel: { width: 110, color: theme.colors.textSecondary, fontWeight: '800' },
-  rowValue: { flex: 1, color: theme.colors.textPrimary, fontWeight: '800', textAlign: 'right' },
-
-  desc: { color: theme.colors.textPrimary, lineHeight: 20 },
+  sectionTitle: { fontWeight: '800', color: theme.colors.textPrimary, fontSize: 18 },
+  synopsisScrollContent: {
+    paddingBottom: theme.spacing.sm,
+  },
+  desc: {
+    color: theme.colors.textPrimary,
+    lineHeight: 24,
+    fontSize: 14,
+  },
 
   errorWrap: { flex: 1, padding: theme.spacing.lg, justifyContent: 'center', gap: theme.spacing.md },
   secondaryButton: {

@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { theme } from '../constants/theme';
 
-export default function ScreenContainer({ children, edges = ['top'], padded = false, style }) {
+export default function ScreenContainer({ children, edges = ['top', 'bottom'], padded = false, style }) {
   return (
     <SafeAreaView edges={edges} style={[styles.safe, style]}>
       {padded ? <View style={styles.padded}>{children}</View> : children}

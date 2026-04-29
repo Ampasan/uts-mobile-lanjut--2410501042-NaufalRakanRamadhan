@@ -17,6 +17,7 @@ function safeBook(input) {
     id,
     title: typeof book.title === 'string' ? book.title : String(book.title ?? 'Untitled'),
     author: typeof book.author === 'string' ? book.author : String(book.author ?? 'Unknown'),
+    subject: typeof book.subject === 'string' ? book.subject : String(book.subject ?? ''),
     coverId: Number.isFinite(book.coverId) ? book.coverId : null,
   };
 }
@@ -41,6 +42,22 @@ export default create(
         const key = asId(id);
         if (!key) return;
         set((state) => ({ favorites: state.favorites.filter((b) => b.id !== key) }));
+      },
+
+      updateFavorite: (id, patch) => {
+        const key = asId(id);
+        if (!key || !patch || typeof patch !== 'object') return;
+
+        set((state) => ({
+          favorites: state.favorites.map((book) =>
+            book.id === key
+              ? {
+                  ...book,
+                  ...safeBook({ ...book, ...patch }),
+                }
+              : book,
+          ),
+        }));
       },
     }),
     {
